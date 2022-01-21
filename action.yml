@@ -64,7 +64,15 @@ runs:
         echo "cloud_provider=${cloud_provider}" >> $GITHUB_ENV
       shell: bash
     - uses: aws-actions/setup-sam@v1
-   - run: |
+    - run: |
+        # https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html
+        curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator
+        chmod +x ./aws-iam-authenticator
+        mkdir -p $HOME/bin
+        cp ./aws-iam-authenticator $HOME/bin/aws-iam-authenticator
+        echo "$HOME/bin" >> $GITHUB_PATH
+      shell: bash    
+    - run: |
         # verify works
         aws-iam-authenticator help
       shell: bash
