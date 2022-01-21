@@ -1,0 +1,123 @@
+name: "Grid.ai BYOC Manual EKS"
+inputs:
+  # required
+  aws-access-key-id:
+    required: true
+  aws-secret-access-key:
+    required: true
+  # optional
+  cluster-name:
+    required: false
+    default: "c$(date '+%y%m%d-%H%M%S')"
+    type: string
+    description: "Grid.ai Cluster Name"                  
+  cloud-provider:
+    required: false
+    default: aws
+    type: string    
+    description: "Grid.ai Cluster Provider (aws is the only cloud supported)"                  
+  cloud-terraform-repo:
+    required: false
+    default: gridai/terraform-aws-grid-byoc-full.git
+    type: string
+  byoc-region:
+    required: false
+    default: us-east-1
+  grid-args:
+    required: false
+    default: "--cost-savings --instance-types t2.medium,t2.large"
+    type: string    
+    description: "Arguments to grid run command"                  
+  success-status:
+    required: false
+    default: "^running$"
+    type: string               
+    description: "grid cluster status text for successful execution"    
+outputs:
+  obj-type:
+    value: ${{ steps.gridai-obj-status.outputs.obj-type }}
+    description: "object id searched for"
+  obj-id:
+    value: ${{ steps.gridai-obj-status.outputs.obj-id }}
+    description: "object id searched for"
+  obj-status:
+    value: ${{ steps.gridai-obj-status.outputs.obj-status }}
+    description: "comma delimited status all of objects. ex: succeeded,succeeded,stopped"
+  obj-tally:
+    value: ${{ steps.gridai-obj-status.outputs.obj-tally }}
+    description: "comma delimited tally status codes. ex: 2 succeeded,1 stopped"
+  obj-summary:
+    value: ${{ steps.gridai-obj-status.outputs.obj-summary }}
+    description: "comma delimited unique status codes. ex: succeeded,stopped"
+  obj-exit-code:
+    value: ${{ steps.gridai-obj-status.outputs.obj-exit-code }}
+    description: "0 if exited finding the supplied status, 1 otherwise"    
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        export cloud_provider=$(echo ${{ inputs.cloud-provider }} | tr '[:upper:]' '[:lower:]')
+        if [ "${cloud_provider}" != "aws" ]; then
+          echo "This script supports AWS only"
+          exit 1
+        fi
+        echo "cloud_provider=${cloud_provider}" >> $GITHUB_ENV
+      shell: bash
+    - uses: aws-actions/setup-sam@v1
+    - run: |
+        # https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html
+        curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator
+        chmod +x ./aws-iam-authenticator
+        mkdir -p $HOME/bin && cp ./aws-iam-authenticator $HOME/bin/aws-iam-authenticator && export PATH=$PATH:$HOME/bin
+        echo 'export PATH=$PATH:$HOME/bin' >> ~/.bashrc
+        echo "$HOME/bin" >> $GITHUB_PATH
+      shell: bash
+   - run: |
+        # verify works
+        aws-iam-authenticator help
+      shell: bash
+
+    - uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.byoc-region }}    
+    - run: |
+        mkdir ~/.aws
+        ls ~/.aws
+        echo "[byoc-ops]" >> ~/.aws/credentials
+        echo "aws_access_key_id = ${{ inputs.aws-access-key-id }}" >> ~/.aws/credentials 
+        echo "aws_secret_access_key = ${{ inputs.aws-secret-access-key }}" >> ~/.aws/credentials 
+        cat ~/.aws/credentials
+        echo "[profile byoc-ops]"  >> ~/.aws/config
+        echo "region=${{ inputs.byoc-region }}" >> ~/.aws/config
+        echo "output=json" >> ~/.aws/config
+        cat ~/.aws/config
+      shell: bash    
+    - uses: actions/checkout@v2     
+      with:
+        repository: ${{ inputs.cloud-terraform-repo }}             
+    - run: |
+        terraform init
+      shell: bash
+    - run: |
+        terraform apply -auto-approve
+        terraform output -json > tf.output.json
+      shell: bash
+
+    - id: gridai-obj-create
+      run: |
+        # cluster name
+        export obj_id=${{ inputs.cluster-name }}
+        echo "obj_id=${obj_id}" >> $GITHUB_ENV
+        # aws 
+        export EXTERNAL_ID=$(cat tf.output.json | jq -r '.external_id.value')
+        export ROLE_ARN=$(cat tf.output.json | jq -r '.role_arn.value')
+        if [ -z "${EXTERNAL_ID}" ]; then  echo "Error: EXTERNAL_ID is blank"; exit 1; fi
+        if [ -z "${ROLE_ARN}" ]; then     echo "Error: ROLE_ARN is blank"; exit 1; fi
+        # mask EXTERNAL_ID and ROLE_ARN 
+        echo "::add-mask::${EXTERNAL_ID}"
+        echo "::add-mask::${ROLE_ARN}"
+        # create cluster
+        # gridai.py cli "grid clusters ${{ inputs.cloud-provider }} ${{ inputs.grid-args }} --region ${{ inputs.byoc-region }} --role-arn ${ROLE_ARN} --external-id ${EXTERNAL_ID} ${obj_id}"
+      shell: bash
