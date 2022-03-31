@@ -1,4 +1,4 @@
-name: "Grid.ai BYOC Manual EKS"
+name: "Grid.ai Customer Managed BYOC"
 inputs:
   # required
   aws-access-key-id:
@@ -97,27 +97,40 @@ runs:
     - uses: actions/checkout@v2     
       with:
         repository: ${{ inputs.cloud-terraform-repo }}             
+      run: |
+        # cluster name
+        export obj_id=${{ inputs.cluster-name }}
+        echo "obj_id=${obj_id}" >> $GITHUB_ENV
+    - run: |
+        cp example/dev.tfvars $obj_id.tfvars
+        sed -i.bak \
+        -e "s/^\(cluster_name[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"$obj_id\"/g" \
+        -e "s/^\(hostname[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"$obj_id\.prod\.grid\.cloud\"/g" \
+        -e "s/^\(role_arn[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
+        -e "s/^\(testing_cluster[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= false/g" \
+        -e "s/^\(guard_duty_integration[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= false/g" \
+        -e "s/^\(builder_ami_name_override[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
+        -e "s/^\(bastion_ami_override[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
+        -e "s/^\(tailscale_token[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
+        -e "s/^\(tailscale_subnet[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
+        $CLUSTER.tfvars
+        diff $CLUSTER.tfvars.bak $obj_id.tfvars 
+      shell: bash    
     - run: |
         terraform init
+        terraform apply -auto-approve -var-file $obj_id.tfvars 
       shell: bash
     - run: |
-        terraform apply -auto-approve
         terraform output -json > tf.output.json
       shell: bash
 
     - id: gridai-obj-create
       run: |
-        # cluster name
-        export obj_id=${{ inputs.cluster-name }}
-        echo "obj_id=${obj_id}" >> $GITHUB_ENV
         # aws 
         export EXTERNAL_ID=$(cat tf.output.json | jq -r '.external_id.value')
-        export ROLE_ARN=$(cat tf.output.json | jq -r '.role_arn.value')
         if [ -z "${EXTERNAL_ID}" ]; then  echo "Error: EXTERNAL_ID is blank"; exit 1; fi
-        if [ -z "${ROLE_ARN}" ]; then     echo "Error: ROLE_ARN is blank"; exit 1; fi
         # mask EXTERNAL_ID and ROLE_ARN 
         echo "::add-mask::${EXTERNAL_ID}"
-        echo "::add-mask::${ROLE_ARN}"
         # create cluster
-        # gridai.py cli "grid clusters ${{ inputs.cloud-provider }} ${{ inputs.grid-args }} --region ${{ inputs.byoc-region }} --role-arn ${ROLE_ARN} --external-id ${EXTERNAL_ID} ${obj_id}"
+        gridai.py cli "grid clusters ${{ inputs.cloud-provider }} ${{ inputs.grid-args }} --region ${{ inputs.byoc-region }} --role-arn ${ROLE_ARN} --external-id ${EXTERNAL_ID} ${obj_id}"
       shell: bash
