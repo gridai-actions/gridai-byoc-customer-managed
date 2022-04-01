@@ -18,7 +18,7 @@ inputs:
     description: "Grid.ai Cluster Provider (aws is the only cloud supported)"                  
   cloud-terraform-repo:
     required: false
-    default: gridai/terraform-aws-grid-byoc-full.git
+    default: gridai/terraform-aws-grid-byoc-full
     type: string
   byoc-region:
     required: false
