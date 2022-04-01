@@ -122,7 +122,7 @@ runs:
     - run: |
         diff $obj_id.tfvars.bak $obj_id.tfvars 
       shell: bash    
-      if: succeeded() || failed()
+      continue-on-error: true
     - run: |
         terraform init
         terraform apply -auto-approve -var-file $obj_id.tfvars 
