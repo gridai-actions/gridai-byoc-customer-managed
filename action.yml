@@ -120,9 +120,11 @@ runs:
         $obj_id.tfvars
       shell: bash    
     - run: |
-        diff $obj_id.tfvars.bak $obj_id.tfvars 
+        # force 0 return code from diff until continue-on-error works
+        diff $obj_id.tfvars.bak $obj_id.tfvars || :
       shell: bash    
-      continue-on-error: true
+      # https://github.com/actions/runner/pull/1763/commits/437e905669e887af3c09188459ce64662fffac75
+      # continue-on-error: true
     - run: |
         terraform init
         terraform apply -auto-approve -var-file $obj_id.tfvars 
