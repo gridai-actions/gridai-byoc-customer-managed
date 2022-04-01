@@ -127,7 +127,7 @@ runs:
       # continue-on-error: true
     - run: |
         terraform init
-        terraform apply -auto-approve -var-file $obj_id.tfvars 
+        terraform apply -auto-approve -var builder_ami_name_override="" -var bastion_ami_override="" -var-file $obj_id.tfvars 
       shell: bash
     - run: |
         terraform output -json > tf.output.json
