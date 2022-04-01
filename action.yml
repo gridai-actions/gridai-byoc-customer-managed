@@ -117,8 +117,8 @@ runs:
         -e "s/^\(bastion_ami_override[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
         -e "s/^\(tailscale_token[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
         -e "s/^\(tailscale_subnet[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
-        $CLUSTER.tfvars
-        diff $CLUSTER.tfvars.bak $obj_id.tfvars 
+        $obj_id.tfvars
+        diff $obj_id.tfvars.bak $obj_id.tfvars 
       shell: bash    
     - run: |
         terraform init
