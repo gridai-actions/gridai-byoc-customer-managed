@@ -118,8 +118,11 @@ runs:
         -e "s/^\(tailscale_token[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
         -e "s/^\(tailscale_subnet[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
         $obj_id.tfvars
+      shell: bash    
+    - run: |
         diff $obj_id.tfvars.bak $obj_id.tfvars 
       shell: bash    
+      if: succeeded() || failed()
     - run: |
         terraform init
         terraform apply -auto-approve -var-file $obj_id.tfvars 
