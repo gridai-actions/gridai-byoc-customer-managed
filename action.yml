@@ -97,7 +97,7 @@ runs:
     - uses: actions/checkout@v2     
       with:
         repository: ${{ inputs.cloud-terraform-repo }}             
-      run: |
+    - run: |
         # cluster name
         export obj_id=${{ inputs.cluster-name }}
         echo "obj_id=${obj_id}" >> $GITHUB_ENV
