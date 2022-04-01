@@ -133,13 +133,35 @@ runs:
         terraform output -json > tf.output.json
       shell: bash
 
-    - id: gridai-obj-create
+    - id: terraform-apply
       run: |
         # aws 
-        export EXTERNAL_ID=$(cat tf.output.json | jq -r '.external_id.value')
-        if [ -z "${EXTERNAL_ID}" ]; then  echo "Error: EXTERNAL_ID is blank"; exit 1; fi
-        # mask EXTERNAL_ID and ROLE_ARN 
-        echo "::add-mask::${EXTERNAL_ID}"
-        # create cluster
-        gridai.py cli "grid clusters ${{ inputs.cloud-provider }} ${{ inputs.grid-args }} --region ${{ inputs.byoc-region }} --role-arn ${ROLE_ARN} --external-id ${EXTERNAL_ID} ${obj_id}"
+        gridv1_cluster_value=$(cat tf.output.json | jq -r '.gridv1_cluster.value')
+        echo "::set-output name=gridv1_cluster_value::$gridv1_cluster_value"        
+      shell: bash
+
+    - name: Get k8s config - we can use it for checking if needed
+      run: |
+        aws eks update-kubeconfig --name $obj_id
+      shell: bash
+
+    - name: Setup a cluster
+      env:
+        GRIDV1_CLUSTER_VALUE: '${{ steps.terraform-apply.outputs.gridv1_cluster_value }}'
+      run: |
+        cat << SCRIPTEOF > set_cluster.sh
+        #!/bin/bash
+        cat << EOF > \$1
+        \$GRIDV1_CLUSTER_VALUE
+        EOF
+        SCRIPTEOF
+        chmod +x set_cluster.sh
+        VISUAL=./set_cluster.sh EDITOR=./set_cluster.sh grid clusters \
+        ${{ inputs.cloud-provider }} \
+        ${{ inputs.grid-args }} \
+        --region ${{ inputs.byoc-region }} \
+        $obj_id \
+        --role-arn "not used" \
+        --external-id "not used" \
+        --edit-before-creation --wait
       shell: bash
