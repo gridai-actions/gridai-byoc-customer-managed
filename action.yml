@@ -101,6 +101,7 @@ runs:
         # cluster name
         export obj_id=${{ inputs.cluster-name }}
         echo "obj_id=${obj_id}" >> $GITHUB_ENV
+      shell: bash    
     - run: |
         cp example/dev.tfvars $obj_id.tfvars
         sed -i.bak \
