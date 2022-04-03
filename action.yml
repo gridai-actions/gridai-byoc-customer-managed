@@ -22,7 +22,7 @@ inputs:
     required: false
     default: us-east-1
   cost_saving_mode:
-    default: false
+    default: true
     required: false
     type: boolean    
     description: cost-saving mode enabled or not
