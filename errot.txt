@@ -1,0 +1,12 @@
+helm_release.promtail: Creation complete after 34s [id=promtail]
+╷
+│ Error: release yace failed, and has been uninstalled due to atomic being set: timed out waiting for the condition
+│ 
+│   with helm_release.yace,
+│   on yace.tf line 34, in resource "helm_release" "yace":
+│   34: resource "helm_release" "yace" {
+│ 
+╵
+Error: Process completed with exit code 1.
+
+
