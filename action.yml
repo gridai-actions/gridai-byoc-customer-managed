@@ -145,17 +145,17 @@ runs:
       # continue-on-error: true
     - run: |
         terraform init
+      shell: bash    
+    - run: |
         terraform apply -auto-approve -var-file ${{ inputs.tf-file-args }} \
         -var cluster_name=$obj_id \
         -var hostname=$obj_id.prod.grid.cloud \
         -var region=${{ inputs.region }} \
-        -var cost_saving_mode=${{ inputs.cost_saving_mode }} \        
-        ${{ inputs.tf-var-args }} 
+        -var cost_saving_mode=${{ inputs.cost_saving_mode }} ${{ inputs.tf-var-args }} 
       shell: bash
     - run: |
         terraform output -json > tf.output.json
       shell: bash
-
     - id: terraform-apply
       run: |
         # aws 
