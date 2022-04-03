@@ -124,7 +124,7 @@ runs:
         echo "obj_id=${obj_id}" >> $GITHUB_ENV
       shell: bash    
     - run: |
-        cp example/dev.tfvars $obj_id.tfvars
+        cp ${{ inputs.tf-file-args }} $obj_id.tfvars
         sed -i.bak \
         -e "s/^\(cluster_name[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"$obj_id\"/g" \
         -e "s/^\(hostname[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"$obj_id\.prod\.grid\.cloud\"/g" \
@@ -146,8 +146,8 @@ runs:
     - run: |
         terraform init
         terraform apply -auto-approve -var-file ${{ inputs.tf-file-args }} \
-        -var cluster_name=${{ inputs.obj_id }} \
-        -var hostname=${{ inputs.obj_id }}.prod.grid.cloud \
+        -var cluster_name=$obj_id \
+        -var hostname=$obj_id.prod.grid.cloud \
         -var region=${{ inputs.region }} \
         -var cost_saving_mode=${{ inputs.cost_saving_mode }} \        
         ${{ inputs.tf-var-args }} 
