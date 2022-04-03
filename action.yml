@@ -147,6 +147,8 @@ runs:
         terraform init
       shell: bash    
         #  -var extra_assume_role_arn="[302180240179]"
+        # -var az_skip_ids=[] \
+
     - run: |
         terraform apply -auto-approve -var-file ${{ inputs.tf-file-args }} \
         -var cluster_name=$obj_id \
@@ -156,7 +158,7 @@ runs:
         -var role_arn="" \
         -var external_id="" \
         -var grid_account_id="302180240179" \
-        -var az_skip_ids=[] \
+        -var extra_assume_role_arn="[302180240179]"
         -var cost_saving_mode=${{ inputs.cost_saving_mode }} ${{ inputs.tf-var-args }} 
       shell: bash
     - run: |
