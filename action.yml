@@ -43,8 +43,8 @@ inputs:
   tf-var-args:
     required: false
     default: "\
-        -var builder_ami_name_override="" \
-        -var bastion_ami_override="" \
+        -var builder_ami_name_override='' \
+        -var bastion_ami_override='' \
     "
     type: string    
     description: "tf apply -var arguments"  
