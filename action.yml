@@ -150,7 +150,7 @@ runs:
         terraform apply -auto-approve -var-file ${{ inputs.tf-file-args }} \
         -var cluster_name=$obj_id \
         -var hostname=$obj_id.prod.grid.cloud \
-        -var region=${{ inputs.region }} \
+        -var region=${{ inputs.byoc-region }} \
         -var cost_saving_mode=${{ inputs.cost_saving_mode }} ${{ inputs.tf-var-args }} 
       shell: bash
     - run: |
