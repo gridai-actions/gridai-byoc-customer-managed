@@ -151,6 +151,9 @@ runs:
         -var cluster_name=$obj_id \
         -var hostname=$obj_id.prod.grid.cloud \
         -var region=${{ inputs.byoc-region }} \
+        -var testing_cluster=false \
+        -var role_arn="" \
+        -var external_id="" \
         -var cost_saving_mode=${{ inputs.cost_saving_mode }} ${{ inputs.tf-var-args }} 
       shell: bash
     - run: |
