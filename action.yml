@@ -18,18 +18,36 @@ inputs:
     default: aws
     type: string    
     description: "Grid.ai Cluster Provider (aws is the only cloud supported)"                  
+  byoc-region:
+    required: false
+    default: us-east-1
+  cost_saving_mode:
+    default: false
+    required: false
+    type: boolean    
+    description: cost-saving mode enabled or not
   cloud-terraform-repo:
     required: false
     default: gridai/terraform-aws-grid-byoc-full
     type: string
-  byoc-region:
-    required: false
-    default: us-east-1
   grid-args:
     required: false
-    default: "--cost-savings --instance-types t2.medium,t2.large"
+    default: ""
     type: string    
-    description: "Arguments to grid run command"                  
+    description: "grid run arguments"                  
+  tf-file-args:
+    required: false
+    default: "./example/dev.tfvars"
+    type: string    
+    description: "tf apply --var-file argument "                  
+  tf-var-args:
+    required: false
+    default: "\
+        -var builder_ami_name_override="" \
+        -var bastion_ami_override="" \
+    "
+    type: string    
+    description: "tf apply -var arguments"  
   success-status:
     required: false
     default: "^running$"
@@ -127,7 +145,12 @@ runs:
       # continue-on-error: true
     - run: |
         terraform init
-        terraform apply -auto-approve -var builder_ami_name_override="" -var bastion_ami_override="" -var-file $obj_id.tfvars 
+        terraform apply -auto-approve -var-file ${{ inputs.tf-file-args }} \
+        -var cluster_name=${{ inputs.obj_id }} \
+        -var hostname=${{ inputs.obj_id }}.prod.grid.cloud \
+        -var region=${{ inputs.region }} \
+        -var cost_saving_mode=${{ inputs.cost_saving_mode }} \        
+        ${{ inputs.tf-var-args }} 
       shell: bash
     - run: |
         terraform output -json > tf.output.json
@@ -159,9 +182,8 @@ runs:
         VISUAL=./set_cluster.sh EDITOR=./set_cluster.sh grid clusters \
         ${{ inputs.cloud-provider }} \
         ${{ inputs.grid-args }} \
-        --region ${{ inputs.byoc-region }} \
         $obj_id \
-        --role-arn "not used" \
-        --external-id "not used" \
+        --role-arn "not used but required" \
+        --external-id "not used but required" \
         --edit-before-creation --wait
       shell: bash
