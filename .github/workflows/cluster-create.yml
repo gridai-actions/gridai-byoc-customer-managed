@@ -1,0 +1,94 @@
+
+name: "Grid.ai Customer Manged BYOC"
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        required: true
+        default: c$(date '+%y%m%d-%H%M%S')
+        description: Grid.ai BYOC cluster name
+      grid-args:
+        required: false
+        default: ""
+        description: "`grid clusters aws` arguments"
+      aws-region:
+        required: true
+        default: us-east-1
+        description: region
+      cost_saving_mode:
+        default: true
+        required: true
+        type: boolean    
+        description: cost-saving mode enabled or not        
+      tf-file-args:
+        required: false
+        default: "./example/dev.tfvars"
+        description: "tf apply -var-file argument"
+      tf-var-args:
+        required: false
+        default: "\
+            -var 'instances=[{\"name\": \"t2.medium\", \"overprovisioned_ondemand_count\": 0}, {\"name\": \"g4dn.xlarge\", \"overprovisioned_ondemand_count\": 0} ]' \
+            -var builder_ami_name_override='' \
+            -var bastion_ami_override='' \
+        "        
+        description:  tf apply -var argument
+      grid-url:
+        required: false
+        default: 
+        description: set GRID_URL 
+#        type: choice
+#        options: 
+#        -
+#        - https://platform.grid.ai
+#        - https://staging.grid.ai
+#        - https://qa.grid.ai 
+      python-version:  
+        required: true
+        default: 3.8
+        description: set python version 
+#        type: choice
+#        options: 
+#        - 3.8
+#        - 3.9
+      python-venv:
+        required: false
+        default: venv
+        description: use python venv or not
+#        type: choice
+#        options: 
+#        - venv
+#        -  
+jobs:
+  gridai-byoc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gridai-actions/gridai-login@v0
+        with:
+          python-version: ${{ github.event.inputs.python-version }}
+          python-venv: ${{ github.event.inputs.python-venv }}
+          grid-url: ${{ github.event.inputs.grid-url }}
+          gridai-username: ${{ secrets.GRIDAI_USERNAME }} 
+          gridai-key: ${{ secrets.GRIDAI_KEY }}
+      - id: gridai-obj-create
+        uses: gridai-actions/gridai-byoc-customer-managed@main
+        with:
+          cluster-name: ${{ github.event.inputs.name }} 
+          byoc-region: ${{ github.event.inputs.aws-region }}
+          grid-args: ${{ github.event.inputs.grid-args }}
+          cost_saving_mode: ${{ github.event.inputs.cost_saving_mode }}
+          tf-file-args: ${{ github.event.inputs.tf-file-args }}
+          tf-var-args: ${{ github.event.inputs.tf-var-args }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}          
+          gh-access-token: ${{ secrets.GH_ACCESS_TOKEN }}          
+      - id: gridai-obj-status
+        run: |
+          # failed can flipped to running.  check 3 times for flip flop.
+          gridai.py status_clus "${{ github.event.inputs.name }}" --min_all_match_cnt 3 --status3 "running|failed" --gha 
+        shell: bash
+      - run: |
+          if [ "${{ steps.gridai-obj-status.outputs.match-status }}" != "running" ]; then
+            exit 1
+          fi             
+        shell: bash          
