@@ -125,24 +125,10 @@ runs:
       shell: bash    
     - run: |
         cp ${{ inputs.tf-file-args }} $obj_id.tfvars
-        sed -i.bak \
-        -e "s/^\(cluster_name[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"$obj_id\"/g" \
-        -e "s/^\(hostname[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"$obj_id\.prod\.grid\.cloud\"/g" \
-        -e "s/^\(role_arn[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
-        -e "s/^\(testing_cluster[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= false/g" \
-        -e "s/^\(guard_duty_integration[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= false/g" \
-        -e "s/^\(builder_ami_name_override[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
-        -e "s/^\(bastion_ami_override[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
-        -e "s/^\(tailscale_token[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
-        -e "s/^\(tailscale_subnet[[:space:]]*\)\=[[:space:]]*\(.*\)$/\1= \"\"/g" \
-        $obj_id.tfvars
+        cat >>$obj_id.tfvars <<SCRIPTEOF
+          public_access_cidrs=[0.0.0.0/0]
+        SCRIPTEOF  
       shell: bash    
-    - run: |
-        # force 0 return code from diff until continue-on-error works
-        diff $obj_id.tfvars.bak $obj_id.tfvars || :
-      shell: bash    
-      # https://github.com/actions/runner/pull/1763/commits/437e905669e887af3c09188459ce64662fffac75
-      # continue-on-error: true
     - run: |
         terraform init
       shell: bash    
@@ -150,7 +136,7 @@ runs:
         # -var az_skip_ids=[] \
 
     - run: |
-        terraform apply -auto-approve -var-file ${{ inputs.tf-file-args }} \
+        terraform apply -auto-approve -var-file $obj_id.tfvars \
         -var cluster_name=$obj_id \
         -var hostname=$obj_id.prod.grid.cloud \
         -var region=${{ inputs.byoc-region }} \
