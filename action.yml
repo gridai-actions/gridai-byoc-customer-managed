@@ -125,9 +125,7 @@ runs:
       shell: bash    
     - run: |
         cp ${{ inputs.tf-file-args }} $obj_id.tfvars
-        cat >>$obj_id.tfvars <<SCRIPTEOF
-          public_access_cidrs=[0.0.0.0/0]
-        SCRIPTEOF  
+        echo public_access_cidrs=["0.0.0.0/0"] >> $obj_id.tfvars
       shell: bash    
     - run: |
         terraform init
